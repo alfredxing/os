@@ -1,14 +1,17 @@
 arch ?= x86_64
 kernel := build/kernel-$(arch).bin
 iso := build/os-$(arch).iso
+toolchain := $(arch)-elf
 
 linker_script := src/arch/$(arch)/linker.ld
 grub_cfg := src/arch/$(arch)/grub.cfg
 assembly_source_files := $(wildcard src/arch/$(arch)/*.asm)
 assembly_object_files := $(patsubst src/arch/$(arch)/%.asm, \
 	build/arch/$(arch)/%.o, $(assembly_source_files))
+kernel_source_files := $(wildcard src/arch/$(arch)/*.c)
+kernel_object_file := build/arch/$(arch)/kernel.o
 
-.PHONY: all clean run iso
+.PHONY: all clean run iso c
 
 all: $(kernel)
 
@@ -27,10 +30,15 @@ $(iso): $(kernel) $(grub_cfg)
 	@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
 	@rm -r build/isofiles
 
-$(kernel): $(assembly_object_files) $(linker_script)
-	@x86_64-elf-ld -n -T $(linker_script) -o $(kernel) $(assembly_object_files)
+$(kernel): c $(assembly_object_files) $(linker_script)
+	@$(toolchain)-ld -n -T $(linker_script) -o $(kernel) \
+		$(assembly_object_files) $(kernel_object_file)
 
-# compile assembly files
+c:
+	@$(toolchain)-gcc -c $(kernel_source_files) -o $(kernel_object_file) \
+	       -ffreestanding -O2 -Wall -Wextra
+
+# Compile assembly files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.asm
 	@mkdir -p $(shell dirname $@)
 	@nasm -felf64 $< -o $@
