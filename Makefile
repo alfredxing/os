@@ -8,8 +8,8 @@ grub_cfg := src/arch/$(arch)/grub.cfg
 assembly_source_files := $(wildcard src/arch/$(arch)/*.asm)
 assembly_object_files := $(patsubst src/arch/$(arch)/%.asm, \
 	build/arch/$(arch)/%.o, $(assembly_source_files))
-kernel_source_files := $(wildcard src/arch/$(arch)/*.c)
-kernel_object_file := build/arch/$(arch)/kernel.o
+kernel_source_files := $(wildcard src/*.c)
+kernel_object_file := build/kernel.o
 
 .PHONY: all clean run iso c
 
