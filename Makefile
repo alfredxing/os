@@ -16,7 +16,7 @@ clean:
 	@rm -r build
 
 run: $(iso)
-	@qemu-system-x86_64 -drive format=raw,file=$(iso)
+	@qemu-system-x86_64 -cdrom $(iso)
 
 iso: $(iso)
 
