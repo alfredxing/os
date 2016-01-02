@@ -11,7 +11,7 @@ assembly_object_files := $(patsubst src/arch/$(arch)/%.asm, \
 kernel_source_files := $(wildcard src/*.c)
 kernel_object_file := build/kernel.o
 
-.PHONY: all clean run iso c
+.PHONY: all clean run vbox iso c
 
 all: $(kernel)
 
@@ -20,6 +20,9 @@ clean:
 
 run: $(iso)
 	@qemu-system-x86_64 -cdrom $(iso)
+
+vbox: $(iso)
+	@VBoxManage controlvm OS reset
 
 iso: $(iso)
 

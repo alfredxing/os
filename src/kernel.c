@@ -49,7 +49,7 @@ uint16_t* terminal_buffer;
 void terminal_initialize() {
 	terminal_row = 0;
 	terminal_column = 0;
-	terminal_colour = make_colour(COLOUR_CYAN, COLOUR_BLACK);
+	terminal_colour = make_colour(COLOUR_LIGHT_GREY, COLOUR_BLACK);
 	terminal_buffer = (uint16_t*) 0xB8000;
 
 	for (size_t y = 0; y < VGA_HEIGHT; y++) {
@@ -70,6 +70,15 @@ void terminal_putentryat(char c, uint8_t colour, size_t x, size_t y) {
 }
 
 void terminal_putchar(char c) {
+	// Check for newline
+	if (c == '\n') {
+		terminal_column = 0;
+		if (++terminal_row == VGA_HEIGHT) {
+			terminal_row = 0;
+		}
+		return;
+	}
+
 	terminal_putentryat(c, terminal_colour, terminal_column, terminal_row);
 	if (++terminal_column == VGA_WIDTH) {
 		terminal_column = 0;
@@ -89,5 +98,5 @@ void kernel_main() {
 	// Initialize terminal
 	terminal_initialize();
 
-	terminal_writestring("Hello, world!\n");
+	terminal_writestring("Hello, world!\n\nThis is the 05 kernel.\nIt can't do anything yet.\n");
 }
