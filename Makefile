@@ -5,7 +5,7 @@ export ARCH ?= x86_64
 export TARGET ?= $(ARCH)-elf
 
 ifneq ($(OVERRIDE), 1)
-	export MAKE := make
+	export MAKE := make -j
 	export CC := $(TARGET)-gcc
 	export LD := $(TARGET)-ld
 	export ASM := nasm
