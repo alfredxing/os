@@ -1,4 +1,5 @@
-section .multiboot_header
+section .multiboot
+align 4
 header_start:
     dd 0xe85250d6
     dd 0

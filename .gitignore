@@ -1,2 +1,7 @@
-build/
+isodir/
+sysroot/
 *.swp
+
+*.o
+*.bin
+*.iso

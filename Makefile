@@ -1,47 +1,68 @@
-arch ?= x86_64
-kernel := build/kernel-$(arch).bin
-iso := build/os-$(arch).iso
-toolchain := $(arch)-elf
+PROJECTS := libc kernel
+SYSTEM_HEADER_PROJECTS := libc kernel
 
-linker_script := src/arch/$(arch)/linker.ld
-grub_cfg := src/arch/$(arch)/grub.cfg
-assembly_source_files := $(wildcard src/arch/$(arch)/*.asm)
-assembly_object_files := $(patsubst src/arch/$(arch)/%.asm, \
-	build/arch/$(arch)/%.o, $(assembly_source_files))
-kernel_source_files := $(wildcard src/*.c)
-kernel_object_file := build/kernel.o
+export ARCH ?= x86_64
+export TARGET ?= $(ARCH)-elf
 
-.PHONY: all clean run vbox iso c
+ifneq ($(OVERRIDE), 1)
+	export MAKE := make
+	export CC := $(TARGET)-gcc
+	export LD := $(TARGET)-ld
+	export ASM := nasm
+	export AR := $(TARGET)-ar
+	export OVERRIDE = 1
+endif
 
-all: $(kernel)
+export PREFIX ?= /usr
+export EXEC_PREFIX ?= $(PREFIX)
+export BOOTDIR ?= /boot
+export LIBDIR ?= $(EXEC_PREFIX)/lib
+export INCLUDEDIR ?= $(PREFIX)/include
+
+CFLAGS ?=
+CPPFLAGS ?=
+export CFLAGS := $(CFLAGS) -O2
+export CPPFLAGS := $(CPPFLAGS)
+
+PWD := $(shell pwd)
+SYSROOT := $(PWD)/sysroot
+export CC := $(CC) --sysroot=$(SYSROOT)
+export LD := $(LD) --sysroot=$(SYSROOT)
+
+# Workaround for -elf targets
+ifeq ($(findstring -elf, $(TARGET)), -elf)
+	export CC := $(CC) -isystem=$(INCLUDEDIR)
+endif
+
+ISOFILE := os.iso
+
+.PHONY: all headers clean iso vbox
+
+all: build
 
 clean:
-	@rm -r build
+	rm -rf sysroot
+	rm -f $(ISOFILE)
+	for PROJECT in $(PROJECTS); do \
+		$(MAKE) -C $$PROJECT clean; \
+	done
 
-run: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso)
+headers:
+	mkdir -p $(SYSROOT)
+	for PROJECT in $(SYSTEM_HEADER_PROJECTS); do \
+		DESTDIR="$(SYSROOT)" $(MAKE) -C $$PROJECT headers; \
+	done
 
-vbox: $(iso)
-	@VBoxManage controlvm OS reset
+build: headers
+	for PROJECT in $(PROJECTS); do \
+		DESTDIR="$(SYSROOT)" $(MAKE) -C $$PROJECT install; \
+	done
 
-iso: $(iso)
+iso: build
+	mkdir -p isodir/boot/grub
+	cp sysroot/boot/kernel.bin isodir/boot/kernel.bin
+	cp boot/grub/grub.cfg isodir/boot/grub/grub.cfg
+	grub-mkrescue -o $(ISOFILE) isodir
 
-$(iso): $(kernel) $(grub_cfg)
-	@mkdir -p build/isofiles/boot/grub
-	@cp $(kernel) build/isofiles/boot/kernel.bin
-	@cp $(grub_cfg) build/isofiles/boot/grub
-	@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
-	@rm -r build/isofiles
-
-$(kernel): c $(assembly_object_files) $(linker_script)
-	@$(toolchain)-ld -n -T $(linker_script) -o $(kernel) \
-		$(assembly_object_files) $(kernel_object_file)
-
-c:
-	@$(toolchain)-gcc -c $(kernel_source_files) -o $(kernel_object_file) \
-	       -ffreestanding -O2 -Wall -Wextra
-
-# Compile assembly files
-build/arch/$(arch)/%.o: src/arch/$(arch)/%.asm
-	@mkdir -p $(shell dirname $@)
-	@nasm -felf64 $< -o $@
+vbox: iso
+	vboxmanage controlvm OS reset
