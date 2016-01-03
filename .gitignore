@@ -3,5 +3,6 @@ sysroot/
 *.swp
 
 *.o
+*.a
 *.bin
 *.iso
