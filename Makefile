@@ -65,4 +65,5 @@ iso: build
 	grub-mkrescue -o $(ISOFILE) isodir
 
 vbox: iso
+	-vboxmanage startvm OS > /dev/null 2>&1
 	vboxmanage controlvm OS reset
